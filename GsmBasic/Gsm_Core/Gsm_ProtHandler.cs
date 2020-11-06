@@ -87,6 +87,13 @@ namespace MelBox
                 ParseIsSimRegiserd(input);
             }
 
+            if (input.Contains("+CMGR:"))
+            {
+                //TODO: Id der SMS aus Empfangsbestätigung holen.
+                //Muster +CMGR: "REC UNREAD",6,34,,,"20/1106,[...]","[...]",0
+                //Frage: Was beidetet die letzte Zahl?
+            }
+
         }
     }
 }

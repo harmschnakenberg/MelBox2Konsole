@@ -115,6 +115,11 @@ namespace MelBox
 				{
 					Console.WriteLine("Id " + id + " der gesendeten Nachricht:\r\n" + input);
 					SentSmsNotConfirmed.Add(id);
+
+					Console.WriteLine("SMSen ohne Empfangsbestätigung: ");
+					foreach (int i in SentSmsNotConfirmed) Console.Write(i + ", ");
+					Console.WriteLine();
+
 					return;
 				}
 
@@ -145,15 +150,19 @@ namespace MelBox
 			string strResp2 = System.Text.RegularExpressions.Regex.Match(input, pattern).Groups[1].Value;
 			if (strResp2 == null || strResp2.Length < 1)
 				return; // false;
-			int.TryParse(strResp2, out int SentSuccess_SmsId);
+			int.TryParse(strResp2, out int StatusReportId);
+			if (StatusReportId == 0) return;
 
-			if (SentSmsNotConfirmed.Contains(SentSuccess_SmsId))
-			{
-				//Id aus Out-Liste "SentSmsNotConfirmed" löschen:
-				SentSmsNotConfirmed.Remove(SentSuccess_SmsId);
-			}
+			SendATCommand("AT+CMGR=" + StatusReportId);
 
-			OnRaiseGsmSystemEvent(new GsmEventArgs(11060744, "PROVISORISCH: Empfangsbestätigung für SMS mit Id " + SentSuccess_SmsId));
+
+			//if (SentSmsNotConfirmed.Contains(SentSuccess_SmsId))
+			//{
+			//	//Id aus Out-Liste "SentSmsNotConfirmed" löschen:
+			//	SentSmsNotConfirmed.Remove(SentSuccess_SmsId);
+			//}
+
+			//OnRaiseGsmSystemEvent(new GsmEventArgs(11060744, "PROVISORISCH: Empfangsbestätigung für SMS mit Id " + SentSuccess_SmsId));
 		}
 
 
