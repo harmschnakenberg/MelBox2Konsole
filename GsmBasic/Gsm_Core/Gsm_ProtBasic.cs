@@ -105,7 +105,9 @@ namespace MelBox
                     }
                     else
                     {
+                        Console.WriteLine("Verbindungsversuch " + currentConnectTrys + " von " + maxConnectTrys);
                         OnRaiseGsmSystemEvent(new GsmEventArgs(11061554, "Verbindungsversuch " + currentConnectTrys + " von " + maxConnectTrys));
+                        Thread.Sleep(2000);
                     }
                 }
 

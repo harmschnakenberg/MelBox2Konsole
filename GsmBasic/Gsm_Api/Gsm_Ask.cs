@@ -9,8 +9,11 @@ namespace MelBox
 {
     public partial class Gsm
     {
+
         public void SetupGsm()
         {
+            RaiseGsmRecEvent += InterpretGsmRecEvent;
+
             Thread.Sleep(500);
             //Textmode
             SendATCommand("AT+CMGF=1");
@@ -41,6 +44,38 @@ namespace MelBox
             Thread.Sleep(500);
 
         }
+
+        #region Events aus Interpretations-Methoden
+
+        /// <summary>
+        /// Event SMS empfangen
+        /// </summary>
+        public event EventHandler<ShortMessageArgs> RaiseSmsRecievedEvent;
+
+        /// <summary>
+        /// Trigger für das Event SMS empfangen
+        /// </summary>
+        /// <param name="e"></param>
+        protected virtual void OnRaiseSmsRecievedEvent(ShortMessageArgs e)
+        {
+            RaiseSmsRecievedEvent?.Invoke(this, e);
+        }
+
+        /// <summary>
+        /// Event 'Signalqualität'
+        /// </summary>
+        public event EventHandler<GsmEventArgs> RaiseGsmQualityEvent;
+
+        /// <summary>
+        /// Trigger für das Event 'Signalqualität Mobilfunknetz ermittelt'
+        /// </summary>
+        /// <param name="e"></param>
+        protected virtual void OnRaiseGsmQualityEvent(GsmEventArgs e)
+        {
+            RaiseGsmQualityEvent?.Invoke(this, e);
+        }
+
+        #endregion
 
         #region SMS verschicken
         /// <summary>

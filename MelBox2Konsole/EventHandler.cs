@@ -23,23 +23,23 @@ namespace MelBox2Konsole
 
 		static void HandleGsmSystemEvent(object sender, GsmEventArgs e)
 		{
-			Console.BackgroundColor = ConsoleColor.DarkGray;
+			Console.ForegroundColor = ConsoleColor.DarkGray;
 			Console.WriteLine(e.Id + ": " + e.Message);
-			Console.BackgroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.Black;
 		}
 
 		static void HandleGsmSentEvent(object sender, GsmEventArgs e)
 		{
-			Console.BackgroundColor = ConsoleColor.DarkRed;
+			Console.ForegroundColor = ConsoleColor.DarkRed;
 			Console.WriteLine(e.Id + ": " + e.Message);
-			Console.BackgroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.Black;
 		}
 
 		static void HandleGsmRecEvent(object sender, GsmEventArgs e)
 		{
-			Console.BackgroundColor = ConsoleColor.DarkGreen;
+			Console.ForegroundColor = ConsoleColor.DarkGreen;
 			Console.WriteLine(e.Id + ": " + e.Message);
-			Console.BackgroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.Black;
 		}
 	}
 }
