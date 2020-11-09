@@ -47,6 +47,10 @@ namespace MelBox2Konsole
             gsm.RaiseGsmSystemEvent += HandleGsmSystemEvent;
             gsm.RaiseGsmRecEvent += HandleGsmRecEvent;
             gsm.RaiseGsmSentEvent += HandleGsmSentEvent;
+            gsm.RaiseSmsTimeoutEvent += HandleSmsTimeoutEvent;
+            gsm.RaiseSmsRecievedEvent += HandleSmsRecievedEvent;
+
+
             gsm.SetupGsm(); //Setup erst nach Event-Abbo!
 
             string cmdLine = "AT";
@@ -58,7 +62,8 @@ namespace MelBox2Konsole
                 cmdLine = Console.ReadLine();
                 if (cmdLine.ToLower() == "send")
                 {
-                    gsm.SendMessage(4916095285304, "MelBox2 Test " + DateTime.Now);
+                    MelBox.Gsm.AddSendSms(4916095285304, "MelBox2 Test " + DateTime.Now);
+                    //gsm.SendMessage(4916095285304, "MelBox2 Test " + DateTime.Now);
                 }
                 else
                 {

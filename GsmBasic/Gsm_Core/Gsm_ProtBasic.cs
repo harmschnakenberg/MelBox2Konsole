@@ -19,7 +19,6 @@ namespace MelBox
 
         #region Properties
         public string CurrentComPortName { get; set; } = Properties.Settings.Default.ComPort;
-
         #endregion
 
         #region Methods
@@ -160,6 +159,7 @@ namespace MelBox
 
             try
             {
+                Thread.Sleep(100);
                 Port.Write(command + "\r");
                 OnRaiseGsmSentEvent(new GsmEventArgs(11051045, command));
                 Thread.Sleep(100);

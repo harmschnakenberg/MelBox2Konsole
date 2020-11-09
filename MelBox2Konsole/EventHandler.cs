@@ -25,21 +25,38 @@ namespace MelBox2Konsole
 		{
 			Console.ForegroundColor = ConsoleColor.DarkGray;
 			Console.WriteLine(e.Id + ": " + e.Message);
-			Console.ForegroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.Gray;
 		}
 
 		static void HandleGsmSentEvent(object sender, GsmEventArgs e)
 		{
 			Console.ForegroundColor = ConsoleColor.DarkRed;
 			Console.WriteLine(e.Id + ": " + e.Message);
-			Console.ForegroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.Gray;
 		}
 
 		static void HandleGsmRecEvent(object sender, GsmEventArgs e)
 		{
 			Console.ForegroundColor = ConsoleColor.DarkGreen;
 			Console.WriteLine(e.Id + ": " + e.Message);
-			Console.ForegroundColor = ConsoleColor.Black;
+			Console.ForegroundColor = ConsoleColor.Gray;
+		}
+
+		static void HandleSmsTimeoutEvent(object sender, GsmSmsTimeoutEventArgs e)
+		{
+			Console.ForegroundColor = ConsoleColor.Yellow;
+			Console.WriteLine("SMS konnte nicht zugestellt werden:\r\n" + e.Phone + ": " + e.Message);
+			Console.ForegroundColor = ConsoleColor.Gray;
+		}
+
+		static void HandleSmsRecievedEvent(object sender, ShortMessageArgs e)
+		{
+			Console.ForegroundColor = ConsoleColor.Cyan;
+			Console.WriteLine("SMS empfangen:\r\n" + e.Sender + ": " + e.Message);
+			Console.ForegroundColor = ConsoleColor.Gray;
+
+			ulong phone = MelSql.ConvertStringToPhonenumber(e.Sender);
+			sql.InsertMessage(e.Message, phone);
 		}
 	}
 }

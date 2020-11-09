@@ -48,13 +48,16 @@ namespace MelBox
                     return string.Empty;
                 return Encoding.ASCII.GetString(data);
             }
-            catch
+            catch (TimeoutException ex_time)
             {
-                OnRaiseGsmSystemEvent(new GsmEventArgs(11061406, string.Format("Der Port {0} ist nicht bereit.", CurrentComPortName)));
+                OnRaiseGsmSystemEvent(new GsmEventArgs(11061406, string.Format("Der Port {0} konnte nicht erreicht werden. Timeout. \r\n{1}\r\n{2}", CurrentComPortName, ex_time.GetType(), ex_time.Message)));
                 return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.GetType().Name + "\r\n" + ex.Message);
             }
         }
 
-        
     }
 }

@@ -266,5 +266,52 @@ namespace MelBox
             }
         }
 
+        /// <summary>
+        /// BAUSTELLE! Ändert Sendestatus im Sendeprotokoll
+        /// </summary>
+        /// <param name="contendId"></param>
+        /// <param name="sendToId"></param>
+        /// <param name="confirmStatus"></param>
+        public void UpdateLogSent(int contendId, int sendToId, int confirmStatus)
+        {
+
+            try
+            {
+                string query = string.Empty;
+                var args = new Dictionary<string, object>
+                {
+                    { "@contendId", contendId },
+                    { "@sendToId", sendToId },
+                    { "@confirmStatus", confirmStatus }
+                };
+
+
+                query += "UPDATE \"LogSent\" SET \"ConfirmStatus\" = @confirmStatus FROM " +
+                         "(SELECT * FROM \"LogSent\" WHERE \"LogRecievedId\" = @contendId AND \"SentToId\" = @sendToId ORDER BY \"SentTime\" DESC LIMIT 1);";
+
+                args.Add("@contendId", contendId);
+                args.Add("@sendToId", sendToId);
+                args.Add("@confirmStatus", confirmStatus);
+
+                using (SQLiteConnection con = new SQLiteConnection(Datasource))
+                {
+                    con.Open();
+                    using (SQLiteCommand cmd = new SQLiteCommand(query, con))
+                    {
+                        foreach (var pair in args)
+                        {
+                            cmd.Parameters.AddWithValue(pair.Key, pair.Value);
+                        }
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Sql-Fehler UpdateLogSent()\r\n" + ex.GetType() + "\r\n" + ex.Message);
+            }
+        }
+
+
     }
 }

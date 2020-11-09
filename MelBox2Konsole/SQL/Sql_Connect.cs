@@ -77,7 +77,7 @@ namespace MelBox
                         //"INSERT INTO \"LogRecieved\" (\"RecieveTime\", \"FromContactId\", \"ContentId\") VALUES " +
                         //"( CURRENT_TIMESTAMP, 0, 1, 1);",
 
-                        "CREATE TABLE \"LogSent\" (\"Id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"LogRecievedId\" INTEGER NOT NULL, \"SentTime\" TEXT NOT NULL, \"SentToId\" INTEGER NOT NULL, \"SentVia\" INTEGER NOT NULL );" +
+                        "CREATE TABLE \"LogSent\" (\"Id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"LogRecievedId\" INTEGER NOT NULL, \"SentTime\" TEXT NOT NULL, \"SentToId\" INTEGER NOT NULL, \"SentVia\" INTEGER NOT NULL, \"ConfirmStatus\" INTEGER NOT NULL DEFAULT 0);" +
                         //"INSERT INTO \"LogSent\" (\"LogRecievedId\", \"SentTime\", \"SentToId\", \"SentVia\") VALUES " +
                         //"(1, CURRENT_TIMESTAMP, 1, " + SendToWay.Email + ");",
 

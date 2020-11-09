@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -18,12 +19,14 @@ namespace MelBox
 
 			// Die hier aufgerufenen Methoden sind zu finden in Gsm_Interpret.cs 
 
-			if (input.Contains("+CMGL:"))
+			if (input.Contains("+CMGL:")) //SMS im SIM-Speicher
 			{
-				ParseMessages(input);
+				ParseRecMessages(input);
+				ParseStatusReport(input);
+				ParseUnsentMessages(input);
 			} else
 
-			if (input.Contains("+CMGS:"))
+			if (input.Contains("+CMGS:")) //Gesendete SMS
 			{
 				ParseSmsIdFromSendResponse(input);
 			} else
@@ -36,11 +39,6 @@ namespace MelBox
 				ParseStatusReportIndicator(input);
 			} else
 
-			if (input.Contains("+CMGR:"))
-			{
-				ParseSingleMessage(input);
-			} else
-
 			if (input.Contains("+CSQ:"))
 			{
 				ParseSignalQuality(input);
@@ -49,9 +47,12 @@ namespace MelBox
 			if (input.Contains("+CREG:"))
 			{
 				ParseIsSimRegiserd(input);
-			} 
+			} else
 
-
+			if (input.Contains("+CRING: VOICE"))
+            {
+				OnRaiseGsmSystemEvent(new GsmEventArgs(11091419, "Es geht ein Sprachanruf ein!"));
+			}
 
 		}
 
@@ -59,17 +60,17 @@ namespace MelBox
 
 		#region Antworten aus GSM interpretieren
 
-		private void ParseMessages(string input)
+		private void ParseUnsentMessages(string input)
 		{
 			if (input == null) return;
 			try
 			{
-				Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",""(.+)"",(.*),""(.+)""\r\n(.+)\r\n");
+				Regex r = new Regex(@"\+CMGL:\s(\d+),""(.+)"",""(.+)"",,\n(.+)");
 				Match m = r.Match(input);
 
 				if (m.Length == 0)
 				{
-					OnRaiseGsmSystemEvent(new GsmEventArgs(11051201, "Es wurde keine SMS empfangen."));
+					OnRaiseGsmSystemEvent(new GsmEventArgs(11051658, "Keine neuen SMS zu senden.")); ;
 				}
 
 				while (m.Success)
@@ -84,51 +85,11 @@ namespace MelBox
 						Message = m.Groups[6].Value
 					};
 
-					OnRaiseSmsRecievedEvent(msg);
-					m = m.NextMatch();
-				}
-			}
-			catch (Exception ex)
-			{
-				throw ex;
-			}
-		}
-
-		private void ParseSingleMessage(string input)
-		{
-			if (input == null) return;
-			try
-			{
-				Regex r = new Regex(@"\+CMGR: ""(.+)"",(\d+),(\d+)");
-				Match m = r.Match(input);
-
-				if (m.Length == 0)
-				{
-					OnRaiseGsmSystemEvent(new GsmEventArgs(11051201, "Es wurde keine SMS empfangen in\r\n" + input));
-				}
-
-				while (m.Success)
-				{
-					ShortMessageArgs msg = new ShortMessageArgs
-					{						
-						Status = m.Groups[1].Value,
-						Index = m.Groups[2].Value,
-						Sender = m.Groups[3].Value,
-					};
-
-					ulong.TryParse(msg.Sender, out ulong phone);
-
-					if (phone < 100000 && phone > 0 )
-                    {
-						//Status-SMS mit Sendebestätigung für SMS mit der Id 'phone'
-						Console.WriteLine("Empfangsbestätigung für Id " + (int)phone + "\r\n" + input);
-						ConfirmedSentSms.Add( (int)phone );
-						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", phone) ) );
-                    }
-					else
-                    {
-						//TODO: Einzel- SMS
-						OnRaiseSmsRecievedEvent(msg);
+					if (msg.Status == "STO UNSENT")
+					{
+						//Neue Nachricht zum Senden
+						SendATCommand("AT+CMSS=" + msg.Index);
+						//ggf. später: Statusupdate "gesendet ohne EMpfangsbestätigung"
 					}
 
 					m = m.NextMatch();
@@ -139,6 +100,92 @@ namespace MelBox
 				throw ex;
 			}
 		}
+
+		private void ParseRecMessages(string input)
+		{
+			if (input == null) return;
+			try
+			{
+				Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",""(.+)"",(.*),""(.+)""\r\n(.+)\r\n");
+				Match m = r.Match(input);
+
+				if (m.Length == 0)
+				{
+					OnRaiseGsmSystemEvent(new GsmEventArgs(11051201, "Es wurde keine neuen SMS empfangen."));;
+				}
+
+				while (m.Success)
+				{
+					ShortMessageArgs msg = new ShortMessageArgs
+					{
+						Index = m.Groups[1].Value,
+						Status = m.Groups[2].Value,
+						Sender = m.Groups[3].Value,
+						Alphabet = m.Groups[4].Value,
+						Sent = m.Groups[5].Value,
+						Message = m.Groups[6].Value
+					};
+
+					//SMS empfangen
+					OnRaiseSmsRecievedEvent(msg);
+
+					m = m.NextMatch();
+				}
+			}
+			catch (Exception ex)
+			{
+				throw ex;
+			}
+		}
+
+		private void ParseStatusReport(string input)
+        {
+			if (input == null) return;
+			try
+			{
+				//z.B.: +CMGL: 1,"REC READ",6,34,,,"20/11/06,16:08:45+04","20/11/06,16:08:50+04",0
+				Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",(\d+),(\d+),,,""(.+)"",""(.+)"",(\d+)");
+				
+				Match m = r.Match(input);
+
+				if (m.Length == 0)
+				{
+					OnRaiseGsmSystemEvent(new GsmEventArgs(11091346, "Es wurde keine neuen StatusReport-SMS empfangen"));
+				}
+
+				while (m.Success)
+				{
+					ShortMessageArgs msg = new ShortMessageArgs
+					{
+						Index = m.Groups[1].Value,
+						Status = m.Groups[2].Value,						
+						Sender = m.Groups[3].Value,
+						Alphabet = m.Groups[4].Value,
+						Sent = m.Groups[5].Value,
+					};
+					
+					int.TryParse(msg.Alphabet, out int confirmedSmsId);
+
+					if (confirmedSmsId > 0)
+					{
+						//Lese Empängernummer und SMS-Text der SMS mit confirmedSmsId 
+						
+						//Status-SMS mit Sendebestätigung für SMS mit der Id 'phone'
+						Console.WriteLine("Empfangsbestätigung für Id " + confirmedSmsId + "\r\n" + input);
+						//ConfirmedSentSms.Add( (int)phone );
+						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", confirmedSmsId)));
+					}
+
+					m = m.NextMatch();
+				}
+			}
+			catch (Exception ex)
+			{
+				throw ex;
+			}
+		}
+
+		
 
 		private void ParseSignalQuality(string input)
 		{
@@ -169,7 +216,7 @@ namespace MelBox
 				{
 					//Setze Timer zum Überwachen der Empfangsbestätigung
 					Console.WriteLine("Id " + id + " der gesendeten Nachricht:\r\n" + input);
-					SetStatusReportTimer(id);
+					//SetStatusReportTimer(id);
 					return;
 				}
 
@@ -202,14 +249,10 @@ namespace MelBox
 				return; // false;
 			int.TryParse(strResp2, out int IdStatusReport);
 
+			//Lese Id von gesendeter SMS aus EMfangsbestätigungs-SMS
+			//SendATCommand("AT+CMGR=" + IdStatusReport);
 
-			SendATCommand("AT+CMGR=" + IdStatusReport);
 
-			//if (SentSmsNotConfirmed.Contains(IdStatusReport))
-			//{
-			//	//Id aus Out-Liste "SentSmsNotConfirmed" löschen:
-			//	SentSmsNotConfirmed.Remove(IdStatusReport);
-			//}
 
 			OnRaiseGsmSystemEvent(new GsmEventArgs(11060744, "Neue Empfangsbestätigung erhalten mit Id " + IdStatusReport));
 		}
@@ -268,5 +311,6 @@ namespace MelBox
 		}
 		#endregion
 	}
+
 
 }
