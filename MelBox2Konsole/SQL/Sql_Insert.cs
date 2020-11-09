@@ -47,6 +47,7 @@ namespace MelBox
             catch (Exception ex)
             {
                 OnRaiseSqlErrorEvent("Log()", ex);
+                Console.WriteLine(ex.Message);
                 throw new Exception("Sql-Fehler Log() " + ex.GetType().Name);
             }
         }

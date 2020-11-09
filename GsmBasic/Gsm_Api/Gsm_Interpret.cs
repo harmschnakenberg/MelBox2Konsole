@@ -9,47 +9,55 @@ namespace MelBox
 {
 	public partial class Gsm
 	{
-		#region Fields
-		/// <summary>
-		/// Ids von rausgegangenen SMS, für die noch keine EMpfangsbestätigung erhalten wurde.
-		/// TODO: Ids die länger in dieser Liste bleiben erneut senden.
-		/// </summary>
-		private static readonly List<int> SentSmsNotConfirmed = new List<int>();
-		
-		#endregion
 
+		#region Interpretationsweiche
 
-		#region Events mit Interpretationsanteil
-
-		/// <summary>
-		/// Event SMS empfangen
-		/// </summary>
-		public event EventHandler<ShortMessageArgs> RaiseSmsRecievedEvent;
-
-		/// <summary>
-		/// Trigger für das Event SMS empfangen
-		/// </summary>
-		/// <param name="e"></param>
-		protected virtual void OnRaiseSmsRecievedEvent(ShortMessageArgs e)
+		void InterpretGsmRecEvent(object sender, GsmEventArgs e)
 		{
-			RaiseSmsRecievedEvent?.Invoke(this, e);
+			string input = e.Message;
+
+			// Die hier aufgerufenen Methoden sind zu finden in Gsm_Interpret.cs 
+
+			if (input.Contains("+CMGL:"))
+			{
+				ParseMessages(input);
+			} else
+
+			if (input.Contains("+CMGS:"))
+			{
+				ParseSmsIdFromSendResponse(input);
+			} else
+
+			if (input.Contains("+CDSI:"))
+			{
+				//Indicates that new SMS status report has been received +CDS: / +CDSI:
+				//erwartete Antwort: +CDSI: <mem3>, <index>
+				//Lese Id der SMS von Empfangsbestätigung 
+				ParseStatusReportIndicator(input);
+			} else
+
+			if (input.Contains("+CMGR:"))
+			{
+				ParseSingleMessage(input);
+			} else
+
+			if (input.Contains("+CSQ:"))
+			{
+				ParseSignalQuality(input);
+			} else
+
+			if (input.Contains("+CREG:"))
+			{
+				ParseIsSimRegiserd(input);
+			} 
+
+
+
 		}
 
-		/// <summary>
-		/// Event 'Signalqualität'
-		/// </summary>
-		public event EventHandler<GsmEventArgs> RaiseGsmQualityEvent;
-
-		/// <summary>
-		/// Trigger für das Event 'Signalqualität Mobilfunknetz ermittelt'
-		/// </summary>
-		/// <param name="e"></param>
-		protected virtual void OnRaiseGsmQualityEvent(GsmEventArgs e)
-		{
-			RaiseGsmQualityEvent?.Invoke(this, e);
-		}
-
 		#endregion
+
+		#region Antworten aus GSM interpretieren
 
 		private void ParseMessages(string input)
 		{
@@ -86,6 +94,52 @@ namespace MelBox
 			}
 		}
 
+		private void ParseSingleMessage(string input)
+		{
+			if (input == null) return;
+			try
+			{
+				Regex r = new Regex(@"\+CMGR: ""(.+)"",(\d+),(\d+)");
+				Match m = r.Match(input);
+
+				if (m.Length == 0)
+				{
+					OnRaiseGsmSystemEvent(new GsmEventArgs(11051201, "Es wurde keine SMS empfangen in\r\n" + input));
+				}
+
+				while (m.Success)
+				{
+					ShortMessageArgs msg = new ShortMessageArgs
+					{						
+						Status = m.Groups[1].Value,
+						Index = m.Groups[2].Value,
+						Sender = m.Groups[3].Value,
+					};
+
+					ulong.TryParse(msg.Sender, out ulong phone);
+
+					if (phone < 100000 && phone > 0 )
+                    {
+						//Status-SMS mit Sendebestätigung für SMS mit der Id 'phone'
+						Console.WriteLine("Empfangsbestätigung für Id " + (int)phone + "\r\n" + input);
+						ConfirmedSentSms.Add( (int)phone );
+						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", phone) ) );
+                    }
+					else
+                    {
+						//TODO: Einzel- SMS
+						OnRaiseSmsRecievedEvent(msg);
+					}
+
+					m = m.NextMatch();
+				}
+			}
+			catch (Exception ex)
+			{
+				throw ex;
+			}
+		}
+
 		private void ParseSignalQuality(string input)
 		{
 			string pattern = @"\+CSQ: \d+,";
@@ -113,13 +167,9 @@ namespace MelBox
 			{
 				if (int.TryParse(m.Groups[1].Value, out int id))
 				{
+					//Setze Timer zum Überwachen der Empfangsbestätigung
 					Console.WriteLine("Id " + id + " der gesendeten Nachricht:\r\n" + input);
-					SentSmsNotConfirmed.Add(id);
-
-					Console.WriteLine("SMSen ohne Empfangsbestätigung: ");
-					foreach (int i in SentSmsNotConfirmed) Console.Write(i + ", ");
-					Console.WriteLine();
-
+					SetStatusReportTimer(id);
 					return;
 				}
 
@@ -144,36 +194,36 @@ namespace MelBox
 
 		}
 
-		private void ParseStatusReport(string input)
+		private void ParseStatusReportIndicator(string input)
 		{
 			string pattern = "\\+CDSI: \"\\w+\",(\\d+)";
 			string strResp2 = System.Text.RegularExpressions.Regex.Match(input, pattern).Groups[1].Value;
 			if (strResp2 == null || strResp2.Length < 1)
 				return; // false;
-			int.TryParse(strResp2, out int StatusReportId);
-			if (StatusReportId == 0) return;
-
-			SendATCommand("AT+CMGR=" + StatusReportId);
+			int.TryParse(strResp2, out int IdStatusReport);
 
 
-			//if (SentSmsNotConfirmed.Contains(SentSuccess_SmsId))
+			SendATCommand("AT+CMGR=" + IdStatusReport);
+
+			//if (SentSmsNotConfirmed.Contains(IdStatusReport))
 			//{
 			//	//Id aus Out-Liste "SentSmsNotConfirmed" löschen:
-			//	SentSmsNotConfirmed.Remove(SentSuccess_SmsId);
+			//	SentSmsNotConfirmed.Remove(IdStatusReport);
 			//}
 
-			//OnRaiseGsmSystemEvent(new GsmEventArgs(11060744, "PROVISORISCH: Empfangsbestätigung für SMS mit Id " + SentSuccess_SmsId));
+			OnRaiseGsmSystemEvent(new GsmEventArgs(11060744, "Neue Empfangsbestätigung erhalten mit Id " + IdStatusReport));
 		}
 
+        #endregion
 
-	}
+    }
 
-	/// <summary>
-	/// "Tranbsportverpackung" einer SMS
-	/// Absichtlich ist alles als string im "Rohformat" gelassen.
-	/// Interpretation an anderer Stelle.
-	/// </summary>
-	public class ShortMessageArgs : EventArgs
+    /// <summary>
+    /// "Tranbsportverpackung" einer SMS
+    /// Absichtlich ist alles als string im "Rohformat" gelassen.
+    /// Interpretation an anderer Stelle.
+    /// </summary>
+    public class ShortMessageArgs : EventArgs
 	{
 
 		#region Private Variables

@@ -30,7 +30,7 @@ namespace MelBox
             OnRaiseGsmRecEvent(new GsmEventArgs(11051044, answer));
 
             //Interpretiere das empfangene auf verwertbare Inhalte
-            HandleGsmRecEvent(answer);
+            //HandleGsmRecEvent(answer); //wird jetzt über Ereignis RaiseGsmRecEvent getriggert
         }
 
         /// <summary>
@@ -55,45 +55,6 @@ namespace MelBox
             }
         }
 
-        internal void HandleGsmRecEvent(string input)
-        {
-            // Die hier aufgerufenen Methoden sind zu finden in Gsm_Interpret.cs 
-
-            if (input.Contains("+CMGL:"))
-            {
-                ParseMessages(input);
-            }
-
-            if (input.Contains("+CMGS:"))
-            {
-                ParseSmsIdFromSendResponse(input);
-            }
-
-            if (input.Contains("+CDSI:"))
-            {
-                //Indicates that new SMS status report has been received +CDS: / +CDSI:
-                //erwartete Antwort: +CDSI: <mem3>, <index>
-                //Lese Id der SMS von Empfangsbestätigung 
-                ParseStatusReport(input);
-            }
-
-            if (input.Contains("+CSQ:"))
-            {
-                ParseSignalQuality(input);
-            }
-
-            if (input.Contains("+CREG:"))
-            {
-                ParseIsSimRegiserd(input);
-            }
-
-            if (input.Contains("+CMGR:"))
-            {
-                //TODO: Id der SMS aus Empfangsbestätigung holen.
-                //Muster +CMGR: "REC UNREAD",6,34,,,"20/1106,[...]","[...]",0
-                //Frage: Was beidetet die letzte Zahl?
-            }
-
-        }
+        
     }
 }

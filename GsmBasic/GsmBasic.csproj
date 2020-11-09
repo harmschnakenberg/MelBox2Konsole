@@ -43,6 +43,7 @@
   <ItemGroup>
     <Compile Include="Gsm_Api\Gsm_Ask.cs" />
     <Compile Include="Gsm_Api\Gsm_Interpret.cs" />
+    <Compile Include="Gsm_Api\Gsm_Timer.cs" />
     <Compile Include="Gsm_Core\Gsm_ProtBasic.cs" />
     <Compile Include="Gsm_Core\Gsm_ProtEvents.cs" />
     <Compile Include="Gsm_Core\Gsm_ProtHandler.cs" />
