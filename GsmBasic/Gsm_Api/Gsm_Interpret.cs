@@ -28,15 +28,26 @@ namespace MelBox
 
 			if (input.Contains("+CMGS:")) //Gesendete SMS
 			{
-				ParseSmsIdFromSendResponse(input);
+				//nur informativ:
+				//ParseSmsIdFromSendResponse(input);
 			} else
 
-			if (input.Contains("+CDSI:"))
+			if (input.Contains("+CDSI:") || input.Contains("+CMTI:"))
 			{
-				//Indicates that new SMS status report has been received +CDS: / +CDSI:
+				//Meldung einer neu eingegangenen Nachricht von GSM-Modem
+
+				//bei AT+CNMI= [ <mode> ][,  1 ][,  <bm> ][,  <ds> ][,  <bfr> ]
+				//erwartete Antwort: +CMTI: <mem3>, <index>				
+				//-noch keine Methode-
+
+				//Neuen Statusreport empfangen:
+				//bei AT+CNMI= [ <mode> ][,  <mt> ][,  <bm> ][,  2 ][,  <bfr> ]
 				//erwartete Antwort: +CDSI: <mem3>, <index>
-				//Lese Id der SMS von Empfangsbestätigung 
-				ParseStatusReportIndicator(input);
+				//nur informativ;
+				//ParseStatusReportIndicator(input);
+				
+				//SmsRead(); //muss verhinderen, dass zu schnell hintereinander aufgerufen wird!
+
 			} else
 
 			if (input.Contains("+CSQ:"))
@@ -87,12 +98,27 @@ namespace MelBox
 
 					if (msg.Status == "STO UNSENT")
 					{
-						//Neue Nachricht zum Senden
+						//Hier SMS zwischenspeichern zur späteren Auswertung "Sendebestätigung erhalten"
+						SetRetrySendSmsTimer(msg);
+
+						//Neue Nachricht senden
+						OnRaiseGsmSystemEvent(new GsmEventArgs(11111749, "Sende SMS " + msg.Index + " ab.")); ;
 						SendATCommand("AT+CMSS=" + msg.Index);
-						//ggf. später: Statusupdate "gesendet ohne EMpfangsbestätigung"
+					}
+					else
+					if (msg.Status == "STO SENT")
+					{
+						OnRaiseGsmSystemEvent(new GsmEventArgs(11111751, "Versendete SMS " + msg.Index + " bereit zum löschen.")); ;
+
+						if (int.TryParse(msg.Index, out int index))
+						{
+							if (index > 0)
+							//Nachricht aus Speicher löschen
+							SmsDelete(index);
+						}
 					}
 
-					m = m.NextMatch();
+						m = m.NextMatch();
 				}
 			}
 			catch (Exception ex)
@@ -126,10 +152,16 @@ namespace MelBox
 						Message = m.Groups[6].Value
 					};
 
-					//SMS empfangen
-					OnRaiseSmsRecievedEvent(msg);
-
-					m = m.NextMatch();
+					if (msg.Status == "REC UNREAD")
+					{
+						//neue SMS empfangen
+						OnRaiseSmsRecievedEvent(msg);
+					}
+					else if (msg.Status == "REC READ")
+					{
+						SmsDelete(int.Parse(msg.Index));
+					}
+						m = m.NextMatch();
 				}
 			}
 			catch (Exception ex)
@@ -172,8 +204,16 @@ namespace MelBox
 						
 						//Status-SMS mit Sendebestätigung für SMS mit der Id 'phone'
 						Console.WriteLine("Empfangsbestätigung für Id " + confirmedSmsId + "\r\n" + input);
-						//ConfirmedSentSms.Add( (int)phone );
 						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", confirmedSmsId)));
+
+                        foreach (ShortMessageArgs sms in SendRetrys.Keys)
+                        {
+							if (sms.Index == msg.Alphabet)
+                            {
+								//BAUSTELLE !! Kann keinen Member des Loops löschen!?!
+								SendRetrys.Remove(sms);
+                            }
+                        }					 
 					}
 
 					m = m.NextMatch();
@@ -216,7 +256,6 @@ namespace MelBox
 				{
 					//Setze Timer zum Überwachen der Empfangsbestätigung
 					Console.WriteLine("Id " + id + " der gesendeten Nachricht:\r\n" + input);
-					//SetStatusReportTimer(id);
 					return;
 				}
 

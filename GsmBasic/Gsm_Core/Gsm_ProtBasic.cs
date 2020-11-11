@@ -159,10 +159,10 @@ namespace MelBox
 
             try
             {
-                Thread.Sleep(100);
+                Thread.Sleep(200);
                 Port.Write(command + "\r");
                 OnRaiseGsmSentEvent(new GsmEventArgs(11051045, command));
-                Thread.Sleep(100);
+                Thread.Sleep(400);
             }
             catch (System.IO.IOException ex_io)
             {

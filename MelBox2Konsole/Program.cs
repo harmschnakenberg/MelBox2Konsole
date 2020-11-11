@@ -62,7 +62,7 @@ namespace MelBox2Konsole
                 cmdLine = Console.ReadLine();
                 if (cmdLine.ToLower() == "send")
                 {
-                    MelBox.Gsm.AddSendSms(4916095285304, "MelBox2 Test " + DateTime.Now);
+                    MelBox.Gsm.SmsSend(4916095285304, "MelBox2 Test " + DateTime.Now);
                     //gsm.SendMessage(4916095285304, "MelBox2 Test " + DateTime.Now);
                 }
                 else

@@ -42,7 +42,7 @@ namespace MelBox2Konsole
 			Console.ForegroundColor = ConsoleColor.Gray;
 		}
 
-		static void HandleSmsTimeoutEvent(object sender, GsmSmsTimeoutEventArgs e)
+		static void HandleSmsTimeoutEvent(object sender, GsmTimeoutEventArgs e)
 		{
 			Console.ForegroundColor = ConsoleColor.Yellow;
 			Console.WriteLine("SMS konnte nicht zugestellt werden:\r\n" + e.Phone + ": " + e.Message);

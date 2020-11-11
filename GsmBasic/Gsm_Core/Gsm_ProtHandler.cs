@@ -53,6 +53,11 @@ namespace MelBox
                 OnRaiseGsmSystemEvent(new GsmEventArgs(11061406, string.Format("Der Port {0} konnte nicht erreicht werden. Timeout. \r\n{1}\r\n{2}", CurrentComPortName, ex_time.GetType(), ex_time.Message)));
                 return string.Empty;
             }
+            catch (InvalidOperationException ex_op)
+            {
+                OnRaiseGsmSystemEvent(new GsmEventArgs(11061406, string.Format("Der Port {0} ist geschlossen \r\n{1}", CurrentComPortName, ex_op.Message)));
+                return string.Empty;
+            }
             catch (Exception ex)
             {
                 throw new Exception(ex.GetType().Name + "\r\n" + ex.Message);
