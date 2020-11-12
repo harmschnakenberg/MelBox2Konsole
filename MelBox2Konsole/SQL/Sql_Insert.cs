@@ -136,11 +136,12 @@ namespace MelBox
 
         /// <summary>
         /// Schreibt eine neue Nachricht in die Datenbank
+        /// Indiziert den Inhalt, protokollietr den Empfang
         /// </summary>
         /// <param name="message">Inhalt der Nachricht</param>
-        /// <param name="phone"></param>
-        /// <param name="email"></param>
-        public bool InsertMessage(string message, ulong phone = 0, string email = "")
+        /// <param name="phone">von Telefon</param>
+        /// <param name="email">von Email</param>
+        public uint InsertMessage(string message, ulong phone = 0, string email = "")
         {
             try
             {
@@ -172,13 +173,13 @@ namespace MelBox
                     }
                 }
 
-                return true;
+                return msgId;
             }
             catch (Exception ex)
             {
                 OnRaiseSqlErrorEvent("InsertMessage()", ex);
                 //throw new Exception("Sql-Fehler InsertMessage()" + ex.GetType() + "\r\n" + ex.Message );
-                return false;
+                return 0;
             }
         }
 
@@ -304,7 +305,7 @@ namespace MelBox
             catch (Exception ex)
             {
                 OnRaiseSqlErrorEvent("InsertBlockedMessage()", ex);
-                //throw new Exception("Sql-Fehler InsertBlockedMessage()\r\n" + sql_ex.Message);
+                throw new Exception("Sql-Fehler InsertBlockedMessage()\r\n" + ex.Message);
             }
         }
 

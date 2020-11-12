@@ -20,6 +20,13 @@ namespace MelBox
             Email = 2   //weiterleiten per Email
         }
 
+        public enum SendSuccess
+        {
+            Pending = 0,
+            Unsuccessfull = 1,
+            Successfull = 2
+        }
+
         /// <summary>
         /// Kategorien für Logging
         /// </summary>

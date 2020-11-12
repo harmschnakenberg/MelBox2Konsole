@@ -23,7 +23,7 @@ namespace MelBox2Konsole
         static void Main()
         {
             sql = new MelBox.MelSql(); 
-            //sql.RaiseSqlErrorEvent += HandleSqlErrorEvent;
+            sql.RaiseSqlErrorEvent += HandleSqlErrorEvent;
 
             #region Test Sql, später entfernen
             sql.Log(MelBox.MelSql.LogTopic.Start, MelBox.MelSql.LogPrio.Info, "MelBox2 Neustart " + DateTime.Now);
@@ -34,7 +34,7 @@ namespace MelBox2Konsole
 
             //sql.UpdateContact(3, MelSql.SendToWay.None, "", 0, "", 4915142265412);
 
-            sql.UpdateShift(1, DateTime.Now.AddDays(-1), DateTime.Now.AddDays(1), 3);
+            sql.UpdateShift(1, DateTime.Now.AddDays(-1), DateTime.Now.AddDays(1), 7);
 
             foreach (ulong phone in sql.GetCurrentShiftPhoneNumbers())
             {
@@ -47,7 +47,7 @@ namespace MelBox2Konsole
             gsm.RaiseGsmSystemEvent += HandleGsmSystemEvent;
             gsm.RaiseGsmRecEvent += HandleGsmRecEvent;
             gsm.RaiseGsmSentEvent += HandleGsmSentEvent;
-            gsm.RaiseSmsTimeoutEvent += HandleSmsTimeoutEvent;
+            gsm.RaiseSmsStatusReportEvent += HandleSmsStatusReportEvent;
             gsm.RaiseSmsRecievedEvent += HandleSmsRecievedEvent;
 
 

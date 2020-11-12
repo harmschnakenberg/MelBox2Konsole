@@ -26,7 +26,7 @@ namespace MelBox
 				ParseUnsentMessages(input);
 			} else
 
-			if (input.Contains("+CMGS:")) //Gesendete SMS
+			if (input.Contains("+CMGS:") || input.Contains("+CMSS:")) //Gesendete SMS
 			{
 				//nur informativ:
 				//ParseSmsIdFromSendResponse(input);
@@ -44,7 +44,7 @@ namespace MelBox
 				//bei AT+CNMI= [ <mode> ][,  <mt> ][,  <bm> ][,  2 ][,  <bfr> ]
 				//erwartete Antwort: +CDSI: <mem3>, <index>
 				//nur informativ;
-				//ParseStatusReportIndicator(input);
+				ParseStatusReportIndicator(input);
 				
 				//SmsRead(); //muss verhinderen, dass zu schnell hintereinander aufgerufen wird!
 
@@ -81,7 +81,8 @@ namespace MelBox
 
 				if (m.Length == 0)
 				{
-					OnRaiseGsmSystemEvent(new GsmEventArgs(11051658, "Keine neuen SMS zu senden.")); ;
+					OnRaiseGsmSystemEvent(new GsmEventArgs(11051658, "Keine neuen SMS zu senden.")); 
+					return;
 				}
 
 				while (m.Success)
@@ -137,7 +138,8 @@ namespace MelBox
 
 				if (m.Length == 0)
 				{
-					OnRaiseGsmSystemEvent(new GsmEventArgs(11051201, "Es wurde keine neuen SMS empfangen."));;
+					OnRaiseGsmSystemEvent(new GsmEventArgs(11051201, "Es wurde keine neuen SMS empfangen."));
+					return;
 				}
 
 				while (m.Success)
@@ -183,11 +185,12 @@ namespace MelBox
 				if (m.Length == 0)
 				{
 					OnRaiseGsmSystemEvent(new GsmEventArgs(11091346, "Es wurde keine neuen StatusReport-SMS empfangen"));
+					return;
 				}
 
 				while (m.Success)
 				{
-					ShortMessageArgs msg = new ShortMessageArgs
+					ShortMessageArgs statusMsg = new ShortMessageArgs
 					{
 						Index = m.Groups[1].Value,
 						Status = m.Groups[2].Value,						
@@ -196,24 +199,36 @@ namespace MelBox
 						Sent = m.Groups[5].Value,
 					};
 					
-					int.TryParse(msg.Alphabet, out int confirmedSmsId);
+					int.TryParse(statusMsg.Index, out int statusReportSmsId);
 
-					if (confirmedSmsId > 0)
-					{
-						//Lese Empängernummer und SMS-Text der SMS mit confirmedSmsId 
-						
-						//Status-SMS mit Sendebestätigung für SMS mit der Id 'phone'
-						Console.WriteLine("Empfangsbestätigung für Id " + confirmedSmsId + "\r\n" + input);
-						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", confirmedSmsId)));
+					if (statusReportSmsId > 0)
+					{						
+						//Status-SMS mit Sendebestätigung für SMS 
+						Console.WriteLine("Empfangsbestätigung Id " + statusReportSmsId + "für SMS " + statusMsg.Alphabet + " \r\n" + statusMsg.Message);
+						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", statusMsg.Alphabet)));
 
+						//Gehe durch alle offenen Nachrichten
                         foreach (ShortMessageArgs sms in SendRetrys.Keys)
                         {
-							if (sms.Index == msg.Alphabet)
+							//Sendebestätigung == offene SMS?
+							if (sms.Index == statusMsg.Alphabet)
                             {
-								//BAUSTELLE !! Kann keinen Member des Loops löschen!?!
+								//Melde Sendebestätigung
+								ulong phone = ulong.Parse(sms.Sender);
+								OnRaiseSmsTimeoutEvent(new GsmStatusReportEventArgs(phone, statusMsg.Message, true));
+
+								//BAUSTELLE !! Kann keinen Member des Loops löschen!?! Bisher keine Fehlermeldung
 								SendRetrys.Remove(sms);
-                            }
-                        }					 
+								//Lösche bestätigte SMS
+								SmsDelete(int.Parse(sms.Index));
+								//Lösche EMpfangsbestätigung für bestätigte SMS
+								SmsDelete(int.Parse(statusMsg.Index));
+							}
+						}					 
+					}
+					else
+                    {
+						OnRaiseGsmSystemEvent(new GsmEventArgs(11121558, "Empfangsbestätigung konnte nicht entziffert werden für:\r\n." + m.Value));
 					}
 
 					m = m.NextMatch();
@@ -241,26 +256,6 @@ namespace MelBox
 			sig_qual *= 100 / 31;
 
 			OnRaiseGsmQualityEvent(new GsmEventArgs(11051212, sig_qual.ToString()));
-		}
-
-		private void ParseSmsIdFromSendResponse(string input)
-		{
-			if (input == null) return;
-
-			Regex r = new Regex(@"\+CMGS: (\d+)");
-			Match m = r.Match(input);
-
-			while (m.Success)
-			{
-				if (int.TryParse(m.Groups[1].Value, out int id))
-				{
-					//Setze Timer zum Überwachen der Empfangsbestätigung
-					Console.WriteLine("Id " + id + " der gesendeten Nachricht:\r\n" + input);
-					return;
-				}
-
-				m = m.NextMatch();
-			}
 		}
 
 		private void ParseIsSimRegiserd(string input)
@@ -291,21 +286,39 @@ namespace MelBox
 			//Lese Id von gesendeter SMS aus EMfangsbestätigungs-SMS
 			//SendATCommand("AT+CMGR=" + IdStatusReport);
 
-
-
 			OnRaiseGsmSystemEvent(new GsmEventArgs(11060744, "Neue Empfangsbestätigung erhalten mit Id " + IdStatusReport));
 		}
 
-        #endregion
+		//private void ParseSmsIdFromSendResponse(string input)
+		//{
+		//	if (input == null) return;
 
-    }
+		//	Regex r = new Regex(@"\+CMGS: (\d+)");
+		//	Match m = r.Match(input);
 
-    /// <summary>
-    /// "Tranbsportverpackung" einer SMS
-    /// Absichtlich ist alles als string im "Rohformat" gelassen.
-    /// Interpretation an anderer Stelle.
-    /// </summary>
-    public class ShortMessageArgs : EventArgs
+		//	while (m.Success)
+		//	{
+		//		if (int.TryParse(m.Groups[1].Value, out int id))
+		//		{
+		//			//Setze Timer zum Überwachen der Empfangsbestätigung
+		//			Console.WriteLine("Id " + id + " der gesendeten Nachricht:\r\n" + input);
+		//			return;
+		//		}
+
+		//		m = m.NextMatch();
+		//	}
+		//}
+
+		#endregion
+
+	}
+
+	/// <summary>
+	/// "Tranbsportverpackung" einer SMS
+	/// Absichtlich ist alles als string im "Rohformat" gelassen.
+	/// Interpretation an anderer Stelle.
+	/// </summary>
+	public class ShortMessageArgs : EventArgs
 	{
 
 		#region Private Variables

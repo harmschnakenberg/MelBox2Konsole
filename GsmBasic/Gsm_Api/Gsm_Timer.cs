@@ -37,15 +37,15 @@ namespace MelBox
         /// <summary>
         /// Event 'string empfangen von COM'
         /// </summary>
-        public event EventHandler<GsmTimeoutEventArgs> RaiseSmsTimeoutEvent;
+        public event EventHandler<GsmStatusReportEventArgs> RaiseSmsStatusReportEvent;
 
         /// <summary>
         /// Triggert das Event 'string empfangen von COM'
         /// </summary>
         /// <param name="e"></param>
-        protected virtual void OnRaiseSmsTimeoutEvent(GsmTimeoutEventArgs e)
+        protected virtual void OnRaiseSmsTimeoutEvent(GsmStatusReportEventArgs e)
         {
-            RaiseSmsTimeoutEvent?.Invoke(this, e);
+            RaiseSmsStatusReportEvent?.Invoke(this, e);
         }
 
         #endregion
@@ -108,7 +108,7 @@ namespace MelBox
             if (SendRetrys[msg] > MaxSendRetrys)
             {
                 //Maximale Sendeversuche überschritten.                 
-                OnRaiseSmsTimeoutEvent(new GsmTimeoutEventArgs(phone, msg.Message));
+                OnRaiseSmsTimeoutEvent(new GsmStatusReportEventArgs(phone, msg.Message, false));
                 SendRetrys.Remove(msg);
             }
             else

@@ -118,6 +118,7 @@ namespace MelBox
                 InsertContact("Kreutzträger Service", 1, "service@kreutztraeger.de", 0, SendToWay.None);
                 InsertContact("Henry Kreutzträger", 1, "henry.kreutztraeger@kreutztraeger.de", 491727889419, SendToWay.None);
                 InsertContact("Bernd Kreutzträger", 1, "bernd.kreutztraeger@kreutztraeger.de", 491727875067, SendToWay.None);
+                InsertContact("Harm privat", 1, "harm.schnakenberg@kreutztraeger.de", 4916095285304, SendToWay.Sms);
 
                 InsertMessage("Datenbank neu erstellt.", 0, "smszentrale@kreutztraeger.de");
 

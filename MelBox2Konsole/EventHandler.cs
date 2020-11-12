@@ -42,21 +42,31 @@ namespace MelBox2Konsole
 			Console.ForegroundColor = ConsoleColor.Gray;
 		}
 
-		static void HandleSmsTimeoutEvent(object sender, GsmTimeoutEventArgs e)
+		static void HandleSmsStatusReportEvent(object sender, GsmStatusReportEventArgs e)
 		{
 			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine("SMS konnte nicht zugestellt werden:\r\n" + e.Phone + ": " + e.Message);
+			Console.WriteLine(string.Format("SMS konnte {0} zugestellt werden:\r\nAn: {1}\r\n{2}", e.SendSuccess ? "erfolgreich" : "nicht" ,e.Phone ,e.Message));
 			Console.ForegroundColor = ConsoleColor.Gray;
+
+			
 		}
 
 		static void HandleSmsRecievedEvent(object sender, ShortMessageArgs e)
 		{
 			Console.ForegroundColor = ConsoleColor.Cyan;
 			Console.WriteLine("SMS empfangen:\r\n" + e.Sender + ": " + e.Message);
+			
+			ulong phone = MelSql.ConvertStringToPhonenumber(e.Sender);
+			if (phone == 0)
+            {
+				//Telefonnummer konnte nicht entziffert werden!
+				Console.WriteLine("Die Telefonnumer " + e.Sender + " konnte nicht gelesen werden.");
+			}
 			Console.ForegroundColor = ConsoleColor.Gray;
 
-			ulong phone = MelSql.ConvertStringToPhonenumber(e.Sender);
-			sql.InsertMessage(e.Message, phone);
+			
+			sql.RelayMessage(e.Message, phone);
+
 		}
 	}
 }

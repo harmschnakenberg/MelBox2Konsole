@@ -109,8 +109,10 @@ namespace MelBox
             //3.5)  Zeitüberschreitung Sendebestätigung melden 
             //3.6)  "STO UNSENT" Zu sendende SMS aus Speicher senden  => "AT+CMSS"
             //3.7)  "STO SENT" geendende SMS aus Speicher löschen
-                 
+
             //4) optional: erfrage Mobilfunknetzqualität
+            SendATCommand("AT+CSQ");
+
         }
 
         #region SMS lesen

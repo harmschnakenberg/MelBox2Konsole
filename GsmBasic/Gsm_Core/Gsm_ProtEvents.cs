@@ -68,15 +68,18 @@ namespace MelBox
 		public string Message { get; set; }
 	}
 
-	public class GsmTimeoutEventArgs : EventArgs
+	public class GsmStatusReportEventArgs : EventArgs
 	{
-		public GsmTimeoutEventArgs(ulong phone, string message)
+		public GsmStatusReportEventArgs(ulong phone, string message, bool sendSuccess)
 		{
 			Phone = phone;
 			Message = message;
+			SendSuccess = sendSuccess;
 		}
 
 		public ulong Phone { get; set; }
 		public string Message { get; set; }
+
+		public bool SendSuccess { get; set; }
 	}
 }

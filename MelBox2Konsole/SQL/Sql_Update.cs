@@ -272,26 +272,20 @@ namespace MelBox
         /// <param name="contendId"></param>
         /// <param name="sendToId"></param>
         /// <param name="confirmStatus"></param>
-        public void UpdateLogSent(int contendId, int sendToId, int confirmStatus)
+        public void UpdateLogSent(uint contendId, int sendToId, SendSuccess success)
         {
 
             try
             {
-                string query = string.Empty;
+                string query =  "UPDATE \"LogSent\" SET \"ConfirmStatus\" = @confirmStatus FROM " +
+                                "(SELECT * FROM \"LogSent\" WHERE \"LogRecievedId\" = @contendId AND \"SentToId\" = @sendToId ORDER BY \"SentTime\" DESC LIMIT 1);";
+
                 var args = new Dictionary<string, object>
                 {
                     { "@contendId", contendId },
                     { "@sendToId", sendToId },
-                    { "@confirmStatus", confirmStatus }
+                    { "@confirmStatus", (byte)success }
                 };
-
-
-                query += "UPDATE \"LogSent\" SET \"ConfirmStatus\" = @confirmStatus FROM " +
-                         "(SELECT * FROM \"LogSent\" WHERE \"LogRecievedId\" = @contendId AND \"SentToId\" = @sendToId ORDER BY \"SentTime\" DESC LIMIT 1);";
-
-                args.Add("@contendId", contendId);
-                args.Add("@sendToId", sendToId);
-                args.Add("@confirmStatus", confirmStatus);
 
                 using (SQLiteConnection con = new SQLiteConnection(Datasource))
                 {
@@ -312,6 +306,28 @@ namespace MelBox
             }
         }
 
+        /// <summary>
+        /// SMS-Statusreport in DB ablegen
+        /// </summary>
+        /// <param name="phone"></param>
+        /// <param name="content"></param>
+        /// <param name="sendSuccess">true: wurde erfolgreich versand; false: max. Sendeversuche überschritten</param>
+        public void UpdateSmsSendStatus(ulong phone, string content, bool sendSuccess)
+        {
+
+            //ContendId herausfinden
+            uint contendId = GetMessageId(content);
+
+            //EmpfängerId herausfinden
+            int sendToId = GetContactId("", phone);
+
+            SendSuccess confirmStatus = sendSuccess ? SendSuccess.Successfull : SendSuccess.Unsuccessfull;
+
+            if (contendId > 0 && sendToId > 0)
+            {
+                UpdateLogSent(contendId, sendToId, confirmStatus);
+            }
+        }
 
     }
 }

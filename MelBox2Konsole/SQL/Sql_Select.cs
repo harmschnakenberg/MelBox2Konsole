@@ -151,7 +151,11 @@ namespace MelBox
             }
         }
 
-
+        /// <summary>
+        /// Listet die Telefonnummern der aktuellen SMS-Empfänger (Bereitschaft) auf.
+        /// Wenn für den aktuellen Tag keine Bereitschaft eingerichtet ist, wird das Berietschaftshandy eingesetzt.
+        /// </summary>
+        /// <returns>Liste der Telefonnummern derer, die zum aktuellen Zeitpunkt per SMS benachrichtigt werden sollen.</returns>
         public List<ulong> GetCurrentShiftPhoneNumbers()
         {
             #region Stelle sicher, dass es eine Schicht gibt, die heute beginnt    
@@ -179,9 +183,83 @@ namespace MelBox
             #endregion
         }
 
+        /// <summary>
+        /// Stellt einen Satz SMS (Telefonnummer, Text) zur Weiterleitung an die aktuellen Bereitschaftsnehmer
+        /// </summary>
+        /// <param name="relayMessage">Nachricht, die an Bereitschaft gesendet werden soll.</param>
+        /// <returns>Liste der SMS-Empfänger, an die relayMessage gesendet werden soll.</returns>
+        public List<Tuple<ulong, string>> RelayMessage(string relayMessage, ulong recFromPhone)
+        {
+            List<Tuple<ulong, string>> list = new List<Tuple<ulong, string>>();
+
+            //Empfangene Nachricht in DB protokollieren (Inhalt, Sender)
+            uint msgId = InsertMessage(relayMessage, recFromPhone);
+
+            //Ist die Nachricht gesperrt?
+            if (IsMessageBlocked(msgId)) return list;
+
+            //Für jeden Empfänger (Bereitschaft) eine SMS vorbereiten
+            foreach (ulong phone in GetCurrentShiftPhoneNumbers())
+            {
+                list.Add(new Tuple<ulong, string>(phone, relayMessage));
+            }
+
+            return list;
+        }
+
+        public bool IsMessageBlocked(uint messageId)
+        {
+            const string contentQuery = "SELECT \"StartHour\", \"EndHour\", \"Days\" FROM \"BlockedMessages\" WHERE Id = @messageId";
+
+            var args1 = new Dictionary<string, object>
+                {
+                    {"@messageId", messageId }
+                };
+
+            DataTable dt1 = ExecuteRead(contentQuery, args1);
+
+            //messageId ist nicht in der Liste der blockierten Nachrichten
+            if (dt1.Rows.Count == 0) return false;
+
+            //Ist die Nachricht zum jetzigen Zeitpunt geblockt?
+            if (!int.TryParse(dt1.Rows[0]["StartHour"].ToString(), out int startHour)) return false;
+            if (!int.TryParse(dt1.Rows[0]["EndHour"].ToString(), out int endHour)) return false;
+            if (!int.TryParse(dt1.Rows[0]["Days"].ToString(), out int days)) return false;
+
+            //BAUSTELLE!! In die ALTE ANWENDUNG GUCKEN WochenTag / Feiertag / Uhrzeit der Blockierzúng!!
+
+            switch (DateTime.Now.DayOfWeek)
+            {
+
+                case DayOfWeek.Monday:
+                    if()
+                    break;
+                case DayOfWeek.Tuesday:
+                    break;
+                case DayOfWeek.Wednesday:
+                    break;
+                case DayOfWeek.Thursday:
+                    break;
+                case DayOfWeek.Friday:
+                    break;
+                case DayOfWeek.Saturday:
+                    break;
+                case DayOfWeek.Sunday:
+                    break;
+                default:
+                    break;
+            }
+
+            if ()
+
+            if (DateTime.Now.Hour >= startHour) 
 
 
-
+            {
+                //Eintrag vorhanden
+                uint.TryParse(dt1.Rows[0][0].ToString(), out contendId);
+            }
+        }
 
     }
 }
