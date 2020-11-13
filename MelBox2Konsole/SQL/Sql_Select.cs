@@ -178,8 +178,13 @@ namespace MelBox
                                     "( SELECT ContactId FROM Shifts WHERE CURRENT_TIMESTAMP BETWEEN StartTime AND EndTime )";
 
             DataTable dt2 = ExecuteRead(query2, null);
-            
-            return dt2.AsEnumerable().Select(x => ulong.Parse(x[0].ToString())).ToList();
+
+            List<ulong> watch = dt2.AsEnumerable().Select(x => ulong.Parse(x[0].ToString())).ToList();
+
+            if (watch.Count == 0) 
+                OnRaiseSqlErrorEvent(" GetCurrentShiftPhoneNumbers()", new Exception("Es ist aktuell keine SMS-Bereitschaft definiert."));
+
+            return watch;
             #endregion
         }
 
@@ -188,8 +193,9 @@ namespace MelBox
         /// </summary>
         /// <param name="relayMessage">Nachricht, die an Bereitschaft gesendet werden soll.</param>
         /// <returns>Liste der SMS-Empfänger, an die relayMessage gesendet werden soll.</returns>
-        public List<Tuple<ulong, string>> RelayMessage(string relayMessage, ulong recFromPhone)
+        public List<Tuple<ulong, string>> SafeAndRelayMessage(string relayMessage, ulong recFromPhone)
         {
+            Console.WriteLine("SQL: Nachricht empfangen.");
             List<Tuple<ulong, string>> list = new List<Tuple<ulong, string>>();
 
             //Empfangene Nachricht in DB protokollieren (Inhalt, Sender)
@@ -224,40 +230,32 @@ namespace MelBox
             //Ist die Nachricht zum jetzigen Zeitpunt geblockt?
             if (!int.TryParse(dt1.Rows[0]["StartHour"].ToString(), out int startHour)) return false;
             if (!int.TryParse(dt1.Rows[0]["EndHour"].ToString(), out int endHour)) return false;
-            if (!int.TryParse(dt1.Rows[0]["Days"].ToString(), out int days)) return false;
+            if (!int.TryParse(dt1.Rows[0]["Days"].ToString(), out int blockDays)) return false;
 
-            //BAUSTELLE!! In die ALTE ANWENDUNG GUCKEN WochenTag / Feiertag / Uhrzeit der Blockierzúng!!
+            DateTime now = DateTime.Now;
+            int hourNow = now.Hour;
+            if (startHour > hourNow && endHour <= hourNow) return false; //Uhrzeit für Block nicht erreicht
 
-            switch (DateTime.Now.DayOfWeek)
+            int dayOfWeek = (int)now.DayOfWeek;
+            if (dayOfWeek == (int)DayOfWeek.Sunday || IsHolyday(now)) dayOfWeek = 7; //Sonntag und Feiertag ist Tag 7
+
+            switch (blockDays)
             {
-
-                case DayOfWeek.Monday:
-                    if()
-                    break;
-                case DayOfWeek.Tuesday:
-                    break;
-                case DayOfWeek.Wednesday:
-                    break;
-                case DayOfWeek.Thursday:
-                    break;
-                case DayOfWeek.Friday:
-                    break;
-                case DayOfWeek.Saturday:
-                    break;
-                case DayOfWeek.Sunday:
-                    break;
+                case 1: //Montag
+                case 2: //Dienstag
+                case 3: //Mittwoch
+                case 4: //Donnerstag
+                case 5: //Freitag
+                case 6: //Samstag
+                case 7: //Sonntag
+                    return dayOfWeek == blockDays;
+                case 8: //Mo.-Fr.
+                    return dayOfWeek < 6;
+                case 9: //Mo.-So.
+                    Console.WriteLine("Weiterleitung gesperrt für Nachricht {0}", messageId);
+                    return true;
                 default:
-                    break;
-            }
-
-            if ()
-
-            if (DateTime.Now.Hour >= startHour) 
-
-
-            {
-                //Eintrag vorhanden
-                uint.TryParse(dt1.Rows[0][0].ToString(), out contendId);
+                    return false;
             }
         }
 

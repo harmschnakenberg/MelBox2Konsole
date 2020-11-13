@@ -143,13 +143,14 @@ namespace MelBox
         /// <param name="email">von Email</param>
         public uint InsertMessage(string message, ulong phone = 0, string email = "")
         {
+            uint msgId = 0;
             try
             {
                 //Absender identifizieren
                 int senderId = GetContactId("", phone, email, message);
 
                 //Inhalt identifizieren
-                uint msgId = GetMessageId(message);
+                msgId = GetMessageId(message);
 
                 const string query = "INSERT INTO \"LogRecieved\" (\"RecieveTime\", \"FromContactId\", \"ContentId\") VALUES " +
                                      "( CURRENT_TIMESTAMP, @fromContactId, @contentId);";
@@ -173,14 +174,20 @@ namespace MelBox
                     }
                 }
 
-                return msgId;
+                Console.WriteLine("Neue SMS mit Id {0} gespeichert.", msgId);
+
+            }
+            catch (System.Data.SQLite.SQLiteException ex_sql)
+            {
+                OnRaiseSqlErrorEvent("InsertMessage() SQL Fehler", ex_sql);
             }
             catch (Exception ex)
             {
                 OnRaiseSqlErrorEvent("InsertMessage()", ex);
-                //throw new Exception("Sql-Fehler InsertMessage()" + ex.GetType() + "\r\n" + ex.Message );
-                return 0;
+                throw new Exception("InsertMessage()" + ex.GetType() + "\r\n" + ex.Message );
+
             }
+            return msgId;
         }
 
         /// <summary>

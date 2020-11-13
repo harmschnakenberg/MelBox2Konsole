@@ -107,8 +107,8 @@ namespace MelBox
 
             if (SendRetrys[msg] > MaxSendRetrys)
             {
-                //Maximale Sendeversuche überschritten.                 
-                OnRaiseSmsTimeoutEvent(new GsmStatusReportEventArgs(phone, msg.Message, false));
+                //Maximale Sendeversuche überschritten. SendSuccess = 129 (siehe ParseStatusReport() 129 war noch frei, 128 = Status unbekannt, <128 Status von Modem)                 
+                OnRaiseSmsTimeoutEvent(new GsmStatusReportEventArgs(phone, msg.Message, 129));
                 SendRetrys.Remove(msg);
             }
             else

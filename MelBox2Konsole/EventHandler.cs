@@ -45,10 +45,10 @@ namespace MelBox2Konsole
 		static void HandleSmsStatusReportEvent(object sender, GsmStatusReportEventArgs e)
 		{
 			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine(string.Format("SMS konnte {0} zugestellt werden:\r\nAn: {1}\r\n{2}", e.SendSuccess ? "erfolgreich" : "nicht" ,e.Phone ,e.Message));
+			Console.WriteLine(string.Format("SMS konnte {0} zugestellt werden:\r\nAn: {1}\r\n{2}", e.SendSuccess < 32 ? "erfolgreich" : "nicht" ,e.Phone ,e.Message));
 			Console.ForegroundColor = ConsoleColor.Gray;
 
-			
+			sql.UpdateSmsSendStatus(e.Phone, e.Message, e.SendSuccess);
 		}
 
 		static void HandleSmsRecievedEvent(object sender, ShortMessageArgs e)
@@ -64,8 +64,7 @@ namespace MelBox2Konsole
 			}
 			Console.ForegroundColor = ConsoleColor.Gray;
 
-			
-			sql.RelayMessage(e.Message, phone);
+			Gsm.SmsSendMulti( sql.SafeAndRelayMessage(e.Message, phone) );
 
 		}
 	}

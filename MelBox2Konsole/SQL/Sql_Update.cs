@@ -272,7 +272,7 @@ namespace MelBox
         /// <param name="contendId"></param>
         /// <param name="sendToId"></param>
         /// <param name="confirmStatus"></param>
-        public void UpdateLogSent(uint contendId, int sendToId, SendSuccess success)
+        public void UpdateLogSent(uint contendId, int sendToId, int success)
         {
 
             try
@@ -284,7 +284,7 @@ namespace MelBox
                 {
                     { "@contendId", contendId },
                     { "@sendToId", sendToId },
-                    { "@confirmStatus", (byte)success }
+                    { "@confirmStatus", success }
                 };
 
                 using (SQLiteConnection con = new SQLiteConnection(Datasource))
@@ -312,7 +312,7 @@ namespace MelBox
         /// <param name="phone"></param>
         /// <param name="content"></param>
         /// <param name="sendSuccess">true: wurde erfolgreich versand; false: max. Sendeversuche überschritten</param>
-        public void UpdateSmsSendStatus(ulong phone, string content, bool sendSuccess)
+        public void UpdateSmsSendStatus(ulong phone, string content, int sendSuccess)
         {
 
             //ContendId herausfinden
@@ -321,11 +321,9 @@ namespace MelBox
             //EmpfängerId herausfinden
             int sendToId = GetContactId("", phone);
 
-            SendSuccess confirmStatus = sendSuccess ? SendSuccess.Successfull : SendSuccess.Unsuccessfull;
-
             if (contendId > 0 && sendToId > 0)
             {
-                UpdateLogSent(contendId, sendToId, confirmStatus);
+                UpdateLogSent(contendId, sendToId, sendSuccess);
             }
         }
 

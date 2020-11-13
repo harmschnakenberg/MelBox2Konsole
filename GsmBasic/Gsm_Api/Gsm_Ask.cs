@@ -95,6 +95,9 @@ namespace MelBox
         /// </summary>
         private void Loop()
         {
+            Console.WriteLine("Beliebige Taste zum Fortsetzen drücken. 'Esc' Taste zum abbrechen..."); //TEST
+            if (ConsoleKey.Escape == Console.ReadKey(true).Key) return;
+
             //1) anstehende SMS auf SIM speichern 'AT+CMGW'
             AddSmsToStorage();
 
@@ -139,6 +142,18 @@ namespace MelBox
                 SendQueue.Add(t);
         }
 
+        /// <summary>
+        /// Packe meherer'SMS zum Senden' in die Liste zur Abarbeitung
+        /// </summary>
+        /// <param name="smsen">Liste von 'Telefonnummer, Text' Paaren</param>
+        public static void SmsSendMulti(List<Tuple<ulong, string>> smsen)
+        {
+            foreach (var sms in smsen)
+            {
+                if (!SendQueue.Contains(sms))
+                    SendQueue.Add(sms);
+            }
+        }
 
         /// <summary>
         /// Schreibt alle in SendQueue anstehenden SMS in den GSM-Speicher zum Versenden
@@ -179,10 +194,10 @@ namespace MelBox
         /// <param name="smsId">Id der SMS im GSM-Speicher</param>
         private void SmsDelete(int smsId)
         {
-            //DUMMY nur melden:
-            OnRaiseGsmSystemEvent(new GsmEventArgs(11111726, "Die Nachricht mit der Id " + smsId + " würde gelöscht werden:\r\n"));
+
+            OnRaiseGsmSystemEvent(new GsmEventArgs(11111726, "Die SMS mit der Id " + smsId + " wird gelöscht."));
             
-            //SendATCommand("AT+CMGD=" + smsId);
+            SendATCommand("AT+CMGD=" + smsId);
             //ohne Rückmeldung, da nur "OK" gemeldet wird
         }
 

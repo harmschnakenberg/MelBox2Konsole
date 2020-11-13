@@ -63,6 +63,11 @@ namespace MelBox
 			if (input.Contains("+CRING: VOICE"))
             {
 				OnRaiseGsmSystemEvent(new GsmEventArgs(11091419, "Es geht ein Sprachanruf ein!"));
+			} else
+
+			if (input.Contains("AT+CMGD="))
+			{
+				OnRaiseGsmSystemEvent(new GsmEventArgs(11131313, "SMS wurde gelöscht."));
 			}
 
 		}
@@ -177,6 +182,11 @@ namespace MelBox
 			if (input == null) return;
 			try
 			{
+				//+CMGL: < index > ,  < stat > ,  < fo > ,  < mr > , [ < ra > ], [ < tora > ],  < scts > ,  < dt > ,  < st >
+				//[... ]
+				//OK
+				//<st> 0-31 erfolgreich versandt; 32-63 versucht weiter zu senden: 64-127 Sendeversuch abgebrochen
+
 				//z.B.: +CMGL: 1,"REC READ",6,34,,,"20/11/06,16:08:45+04","20/11/06,16:08:50+04",0
 				Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",(\d+),(\d+),,,""(.+)"",""(.+)"",(\d+)");
 				
@@ -198,33 +208,53 @@ namespace MelBox
 						Alphabet = m.Groups[4].Value,
 						Sent = m.Groups[5].Value,
 					};
-					
+
+					byte reportStatusIndicator = 128;					
+					byte.TryParse(m.Groups[7].Value, out reportStatusIndicator);
+
+					//Nur zum Test
+					string statusString = string.Empty;
+					if (reportStatusIndicator < 32) { statusString = "erfolgreich versendet"; }
+					else if (reportStatusIndicator < 64) { statusString = "Sendeversuch läuft noch"; }
+					else if (reportStatusIndicator < 128) { statusString = "Sendeversuch abgebrochen"; }
+					else { statusString = "Status unbekannt"; }
+
 					int.TryParse(statusMsg.Index, out int statusReportSmsId);
 
 					if (statusReportSmsId > 0)
 					{						
 						//Status-SMS mit Sendebestätigung für SMS 
-						Console.WriteLine("Empfangsbestätigung Id " + statusReportSmsId + "für SMS " + statusMsg.Alphabet + " \r\n" + statusMsg.Message);
+						Console.WriteLine("StatusReport Id {0} für SMS {1} Status: {2}\r\n{3}", statusReportSmsId, statusMsg.Alphabet, statusString, statusMsg.Message);
 						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", statusMsg.Alphabet)));
 
 						//Gehe durch alle offenen Nachrichten
                         foreach (ShortMessageArgs sms in SendRetrys.Keys)
                         {
+							
 							//Sendebestätigung == offene SMS?
-							if (sms.Index == statusMsg.Alphabet)
+							if (int.Parse(sms.Index) == int.Parse(statusMsg.Alphabet))
                             {
+								Console.WriteLine("TREFFER!");
 								//Melde Sendebestätigung
 								ulong phone = ulong.Parse(sms.Sender);
-								OnRaiseSmsTimeoutEvent(new GsmStatusReportEventArgs(phone, statusMsg.Message, true));
+								OnRaiseSmsTimeoutEvent(new GsmStatusReportEventArgs(phone, statusMsg.Message, reportStatusIndicator ));
 
 								//BAUSTELLE !! Kann keinen Member des Loops löschen!?! Bisher keine Fehlermeldung
 								SendRetrys.Remove(sms);
 								//Lösche bestätigte SMS
 								SmsDelete(int.Parse(sms.Index));
 								//Lösche EMpfangsbestätigung für bestätigte SMS
-								SmsDelete(int.Parse(statusMsg.Index));
+								SmsDelete(statusReportSmsId);
 							}
-						}					 
+						}
+
+						if (statusMsg.Status == "REC READ")
+						{
+							Console.WriteLine("Lösche alten StatusReport " + statusReportSmsId);
+							SmsDelete(statusReportSmsId);
+						}
+
+
 					}
 					else
                     {

@@ -70,7 +70,7 @@ namespace MelBox
 
 	public class GsmStatusReportEventArgs : EventArgs
 	{
-		public GsmStatusReportEventArgs(ulong phone, string message, bool sendSuccess)
+		public GsmStatusReportEventArgs(ulong phone, string message, int sendSuccess)
 		{
 			Phone = phone;
 			Message = message;
@@ -80,6 +80,6 @@ namespace MelBox
 		public ulong Phone { get; set; }
 		public string Message { get; set; }
 
-		public bool SendSuccess { get; set; }
+		public int SendSuccess { get; set; }
 	}
 }
