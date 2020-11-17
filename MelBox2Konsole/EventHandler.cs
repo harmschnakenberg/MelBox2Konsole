@@ -67,5 +67,14 @@ namespace MelBox2Konsole
 			Gsm.SmsSendMulti( sql.SafeAndRelayMessage(e.Message, phone) );
 
 		}
+
+		static void HandleSmsSentEvent(object sender, ShortMessageArgs e)
+        {
+			ulong phoneTo = ulong.Parse(e.Sender.Trim().Trim('+'));
+
+			//SMS in DB eintragen
+			sql.InsertLogSent(e.Message, phoneTo);
+        }
+
 	}
 }

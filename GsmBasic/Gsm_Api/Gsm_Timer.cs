@@ -45,7 +45,7 @@ namespace MelBox
         /// <param name="e"></param>
         protected virtual void OnRaiseSmsTimeoutEvent(GsmStatusReportEventArgs e)
         {
-            RaiseSmsStatusReportEvent?.Invoke(this, e);
+            RaiseSmsStatusReportEvent?.Invoke(this, e);            
         }
 
         #endregion
@@ -60,7 +60,7 @@ namespace MelBox
         internal void SetCyclicTimer()
         {
             Loop();
-            System.Timers.Timer aTimer = new System.Timers.Timer(60000); //1 min
+            System.Timers.Timer aTimer = new System.Timers.Timer(20000); //1 min
             aTimer.Elapsed += (sender, eventArgs) => Loop();
             aTimer.AutoReset = true;
             aTimer.Enabled = true;
@@ -113,6 +113,7 @@ namespace MelBox
             }
             else
             {
+                OnRaiseGsmSystemEvent(new GsmEventArgs(11170733, "Erneuter Sendeversuch für SMS" + msg.Index )); ;
                 //SMS wieder in die Sendeliste eintragen
                 SmsSend(phone, msg.Message);
             }

@@ -277,8 +277,9 @@ namespace MelBox
 
             try
             {
-                string query =  "UPDATE \"LogSent\" SET \"ConfirmStatus\" = @confirmStatus FROM " +
-                                "(SELECT * FROM \"LogSent\" WHERE \"LogRecievedId\" = @contendId AND \"SentToId\" = @sendToId ORDER BY \"SentTime\" DESC LIMIT 1);";
+                //Status gesendeter Nachrichten aktualisieren
+                string query =  "UPDATE \"LogSent\" SET \"ConfirmStatus\" = @confirmStatus WHERE \"Id\" IN " +
+                                "(SELECT \"Id\" FROM \"LogSent\" WHERE \"LogRecievedId\" = @contendId AND \"SentToId\" = @sendToId AND ( \"ConfirmStatus\" = -1 OR \"ConfirmStatus\" > 31 ) ORDER BY \"SentTime\" DESC LIMIT 1);";
 
                 var args = new Dictionary<string, object>
                 {

@@ -129,10 +129,12 @@ namespace MelBox
                 {
                     //Eintrag neu erstellen
                     const string doubleQuery = "INSERT INTO MessageContent (Content) VALUES (@Content); " +
-                                               "SELECT ID FROM MessageContent ORDER BY ID DESC LIMIT 1";
+                                               "SELECT ID FROM MessageContent ORDER BY ID DESC LIMIT 1; ";
+
+                    Console.WriteLine(doubleQuery, args1.Values);
 
                     dt1 = ExecuteRead(doubleQuery, args1);
-
+                    
                     uint.TryParse(dt1.Rows[0][0].ToString(), out contendId);
                 }
 
@@ -195,7 +197,7 @@ namespace MelBox
         /// <returns>Liste der SMS-Empfänger, an die relayMessage gesendet werden soll.</returns>
         public List<Tuple<ulong, string>> SafeAndRelayMessage(string relayMessage, ulong recFromPhone)
         {
-            Console.WriteLine("SQL: Nachricht empfangen.");
+            Console.WriteLine("SQL: schreibe empfange Nachricht in Datenbank.");
             List<Tuple<ulong, string>> list = new List<Tuple<ulong, string>>();
 
             //Empfangene Nachricht in DB protokollieren (Inhalt, Sender)

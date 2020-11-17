@@ -196,7 +196,7 @@ namespace MelBox
         /// <param name="recMsgId">Id der Nachricht, die weitergeleitet wurde</param>
         /// <param name="sentToId">Id des Kontakts, an den die Nachricht gesendet wurde</param>
         /// <param name="way">Sendeweg (SMS, Email)</param>
-        public void InsertLogSent(int recMsgId, int sentToId, SendToWay way)
+        public void InsertLogSent(uint recMsgId, int sentToId, SendToWay way)
         {
             try
             {
@@ -229,6 +229,26 @@ namespace MelBox
                 throw new Exception("Sql-Fehler InsertLogSent()");
             }
         }
+
+        /// <summary>
+        /// Protokolliert die Weiterleitung einer Nachricht 
+        /// </summary>
+        /// <param name="message">Inhalt der weitergeleiteten Nachricht</param>
+        /// <param name="phoneTo">An wen die Nachricht weitergelietet wird</param>
+        public void InsertLogSent(string content, ulong phoneTo)
+        {
+            //ContendId herausfinden
+            uint contendId = GetMessageId(content);
+
+            //EmpfängerId herausfinden
+            int sendToId = GetContactId("", phoneTo);
+
+            if (contendId > 0 && sendToId > 0)
+            {
+                InsertLogSent(contendId, sendToId, SendToWay.Sms);
+            }
+        }
+
 
         /// <summary>
         /// Erstellt einen neuen Bereitschaftsdienst

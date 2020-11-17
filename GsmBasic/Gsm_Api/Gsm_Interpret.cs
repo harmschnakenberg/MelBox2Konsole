@@ -67,11 +67,14 @@ namespace MelBox
 
 			if (input.Contains("AT+CMGD="))
 			{
-				OnRaiseGsmSystemEvent(new GsmEventArgs(11131313, "SMS wurde gelöscht."));
+				int index = input.IndexOf("AT+CMGD=");
+				string x = input.Substring(index + 9, 3).Trim();
+
+				OnRaiseGsmSystemEvent(new GsmEventArgs(11131313, "SMS " + x + " wurde gelöscht."));
 			}
 
 		}
-
+		
 		#endregion
 
 		#region Antworten aus GSM interpretieren
@@ -81,7 +84,7 @@ namespace MelBox
 			if (input == null) return;
 			try
 			{
-				Regex r = new Regex(@"\+CMGL:\s(\d+),""(.+)"",""(.+)"",,\n(.+)");
+				Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",""(.+)"",,\r\n(.+)");
 				Match m = r.Match(input);
 
 				if (m.Length == 0)
@@ -97,9 +100,9 @@ namespace MelBox
 						Index = m.Groups[1].Value,
 						Status = m.Groups[2].Value,
 						Sender = m.Groups[3].Value,
-						Alphabet = m.Groups[4].Value,
-						Sent = m.Groups[5].Value,
-						Message = m.Groups[6].Value
+						//Alphabet = m.Groups[4].Value,
+						//Sent = m.Groups[5].Value,
+						Message = m.Groups[4].Value
 					};
 
 					if (msg.Status == "STO UNSENT")
@@ -108,7 +111,8 @@ namespace MelBox
 						SetRetrySendSmsTimer(msg);
 
 						//Neue Nachricht senden
-						OnRaiseGsmSystemEvent(new GsmEventArgs(11111749, "Sende SMS " + msg.Index + " ab.")); ;
+						//OnRaiseGsmSystemEvent(new GsmEventArgs(11111749, "Sende SMS " + msg.Index + " ab.")); ;
+						OnRaiseSmsSentEvent(msg);
 						SendATCommand("AT+CMSS=" + msg.Index);
 					}
 					else
@@ -138,11 +142,12 @@ namespace MelBox
 			if (input == null) return;
 			try
 			{
-				Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",""(.+)"",(.*),""(.+)""\r\n(.+)\r\n");
+				Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",""(.+)"",(.*),""(.+)""\r\n(.+)");
 				Match m = r.Match(input);
 
 				if (m.Length == 0)
 				{
+					System.IO.File.AppendAllText("d:\\temp\\rec"+DateTime.Now.Ticks+".txt", r.ToString() + "\r\n" + input);
 					OnRaiseGsmSystemEvent(new GsmEventArgs(11051201, "Es wurde keine neuen SMS empfangen."));
 					return;
 				}
@@ -166,6 +171,7 @@ namespace MelBox
 					}
 					else if (msg.Status == "REC READ")
 					{
+						//FRAGE: nur 'REC READ' (nächster Zyklus) oder immer (sofort) löschen?
 						SmsDelete(int.Parse(msg.Index));
 					}
 						m = m.NextMatch();
@@ -188,12 +194,13 @@ namespace MelBox
 				//<st> 0-31 erfolgreich versandt; 32-63 versucht weiter zu senden: 64-127 Sendeversuch abgebrochen
 
 				//z.B.: +CMGL: 1,"REC READ",6,34,,,"20/11/06,16:08:45+04","20/11/06,16:08:50+04",0
+				//Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",(\d+),(\d+),,,""(.+)"",""(.+)"",(\d+)\r\n");
 				Regex r = new Regex(@"\+CMGL: (\d+),""(.+)"",(\d+),(\d+),,,""(.+)"",""(.+)"",(\d+)");
-				
 				Match m = r.Match(input);
 
 				if (m.Length == 0)
 				{
+					System.IO.File.AppendAllText("d:\\temp\\status" + DateTime.Now.Ticks + ".txt", r.ToString() + "\r\n" + input);
 					OnRaiseGsmSystemEvent(new GsmEventArgs(11091346, "Es wurde keine neuen StatusReport-SMS empfangen"));
 					return;
 				}
@@ -224,25 +231,36 @@ namespace MelBox
 					if (statusReportSmsId > 0)
 					{						
 						//Status-SMS mit Sendebestätigung für SMS 
-						Console.WriteLine("StatusReport Id {0} für SMS {1} Status: {2}\r\n{3}", statusReportSmsId, statusMsg.Alphabet, statusString, statusMsg.Message);
-						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", statusMsg.Alphabet)));
+						//Console.WriteLine("StatusReport Id {0} für SMS {1} Status: {2}\r\n{3}", statusReportSmsId, statusMsg.Sender, statusString, statusMsg.Message);
+						OnRaiseGsmSystemEvent(new GsmEventArgs(11072203, string.Format("Empfangsbestätigung für die SMS '{0}' erhalten.", statusMsg.Sender)));
 
 						//Gehe durch alle offenen Nachrichten
                         foreach (ShortMessageArgs sms in SendRetrys.Keys)
                         {
+							int.TryParse(sms.Index, out int smsIndex);
 							
 							//Sendebestätigung == offene SMS?
-							if (int.Parse(sms.Index) == int.Parse(statusMsg.Alphabet))
+							if (smsIndex == int.Parse(statusMsg.Sender))
                             {
-								Console.WriteLine("TREFFER!");
+								
 								//Melde Sendebestätigung
-								ulong phone = ulong.Parse(sms.Sender);
-								OnRaiseSmsTimeoutEvent(new GsmStatusReportEventArgs(phone, statusMsg.Message, reportStatusIndicator ));
+								ulong phone = ulong.Parse(sms.Sender.Trim().Trim('+'));
+								string message = sms.Message;
+
+								if (phone == 0 || message.Length == 0)
+								{
+									OnRaiseGsmSystemEvent(new GsmEventArgs(11170844, "Nachricht konnte nicht durch Statusreport identifiziert werden."));
+								}
+								else
+								{
+									Console.WriteLine("Statusreport für wartende nachricht erhalten.");
+									OnRaiseSmsTimeoutEvent(new GsmStatusReportEventArgs(phone, message, reportStatusIndicator));
+								}
 
 								//BAUSTELLE !! Kann keinen Member des Loops löschen!?! Bisher keine Fehlermeldung
 								SendRetrys.Remove(sms);
 								//Lösche bestätigte SMS
-								SmsDelete(int.Parse(sms.Index));
+								SmsDelete(smsIndex);
 								//Lösche EMpfangsbestätigung für bestätigte SMS
 								SmsDelete(statusReportSmsId);
 							}
@@ -269,8 +287,6 @@ namespace MelBox
 				throw ex;
 			}
 		}
-
-		
 
 		private void ParseSignalQuality(string input)
 		{

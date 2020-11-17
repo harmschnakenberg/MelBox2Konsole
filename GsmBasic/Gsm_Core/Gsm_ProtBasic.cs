@@ -155,11 +155,13 @@ namespace MelBox
             {
                 ConnectPort();
                 Thread.Sleep(2000);
+                
             }
 
             try
             {
                 Thread.Sleep(200);
+                if (Port != null)
                 Port.Write(command + "\r");
                 OnRaiseGsmSentEvent(new GsmEventArgs(11051045, command));
                 Thread.Sleep(400);

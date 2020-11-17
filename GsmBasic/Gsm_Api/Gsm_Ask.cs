@@ -43,6 +43,20 @@ namespace MelBox
         }
 
         /// <summary>
+        /// Event SMS versendet
+        /// </summary>
+        public event EventHandler<ShortMessageArgs> RaiseSmsSentEvent;
+
+        /// <summary>
+        /// Trigger für das Event SMS versendet
+        /// </summary>
+        /// <param name="e"></param>
+        protected virtual void OnRaiseSmsSentEvent(ShortMessageArgs e)
+        {
+            RaiseSmsSentEvent?.Invoke(this, e);
+        }
+
+        /// <summary>
         /// Event 'Signalqualität'
         /// </summary>
         public event EventHandler<GsmEventArgs> RaiseGsmQualityEvent;
@@ -95,8 +109,9 @@ namespace MelBox
         /// </summary>
         private void Loop()
         {
-            Console.WriteLine("Beliebige Taste zum Fortsetzen drücken. 'Esc' Taste zum abbrechen..."); //TEST
-            if (ConsoleKey.Escape == Console.ReadKey(true).Key) return;
+            Console.WriteLine("Loop()##################################################");
+            //Console.WriteLine("'w' zum Fortsetzen drücken. Beliebige Taste zum überspringen..."); //TEST
+            //if (ConsoleKey.W == Console.ReadKey(true).Key)
 
             //1) anstehende SMS auf SIM speichern 'AT+CMGW'
             AddSmsToStorage();
@@ -113,9 +128,9 @@ namespace MelBox
             //3.6)  "STO UNSENT" Zu sendende SMS aus Speicher senden  => "AT+CMSS"
             //3.7)  "STO SENT" geendende SMS aus Speicher löschen
 
+
             //4) optional: erfrage Mobilfunknetzqualität
             SendATCommand("AT+CSQ");
-
         }
 
         #region SMS lesen
@@ -196,9 +211,13 @@ namespace MelBox
         {
 
             OnRaiseGsmSystemEvent(new GsmEventArgs(11111726, "Die SMS mit der Id " + smsId + " wird gelöscht."));
-            
-            SendATCommand("AT+CMGD=" + smsId);
-            //ohne Rückmeldung, da nur "OK" gemeldet wird
+           
+            //Console.WriteLine("Taste 'D' zum löschen drücken. Beliebige Taste zum abbrechen."); //TEST
+            //ConsoleKey x = Console.ReadKey(true).Key;
+            //if (x == ConsoleKey.D)
+            //{
+                SendATCommand("AT+CMGD=" + smsId);
+            //}
         }
 
         #endregion

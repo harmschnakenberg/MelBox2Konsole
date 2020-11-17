@@ -49,9 +49,11 @@ namespace MelBox2Konsole
             gsm.RaiseGsmSentEvent += HandleGsmSentEvent;
             gsm.RaiseSmsStatusReportEvent += HandleSmsStatusReportEvent;
             gsm.RaiseSmsRecievedEvent += HandleSmsRecievedEvent;
-
+            gsm.RaiseSmsSentEvent += HandleSmsSentEvent;
+            //gsm.Port.ErrorReceived += 
 
             gsm.SetupGsm(); //Setup erst nach Event-Abbo!
+
 
             string cmdLine = "AT";
             gsm.SendATCommand(cmdLine);
@@ -60,10 +62,26 @@ namespace MelBox2Konsole
             while (cmdLine.Length > 0)
             {               
                 cmdLine = Console.ReadLine();
-                if (cmdLine.ToLower() == "send")
+                if (cmdLine.ToLower().StartsWith(">"))
                 {
-                    MelBox.Gsm.SmsSend(4916095285304, "MelBox2 Test " + DateTime.Now);
-                    //gsm.SendMessage(4916095285304, "MelBox2 Test " + DateTime.Now);
+                    //>send >+49123456789 >Dies ist eine SMS-Nachricht
+                    if (cmdLine.ToLower().StartsWith(">send"))
+                    {
+                        string[] msg = cmdLine.Split('>');
+                        ulong.TryParse(msg[1].Trim(), out ulong phone);
+                        if (phone > 0 && msg.Length > 2)
+                        MelBox.Gsm.SmsSend(phone, msg[2]);
+                    }
+                    if (cmdLine.ToLower().StartsWith(">testrec"))
+                    {
+                        MelBox.ShortMessageArgs args = new MelBox.ShortMessageArgs
+                        {
+                            Index = "99",
+                            Sender = "+4915142265412",
+                            Message = "Simuliert SMS Empfang"
+                        };
+                        HandleSmsRecievedEvent(null, args);
+                    }
                 }
                 else
                 {
